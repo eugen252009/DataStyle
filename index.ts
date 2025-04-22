@@ -13,20 +13,25 @@ export function parseInput(msg: string): returntype {
 	}
 	let [_, table, attr, selector] = parse[0];
 	let attributes: Array<string> = [];
-	if (attr == undefined) {
+	//check for setting Parameter
+	if (attr == undefined && selector.includes("=")) {
 		mode = "insert";
 	} else if (selector.includes("=") && attr.includes("=")) {
 		mode = "update";
+	} else {
+		mode = "select"
 	}
-
 	switch (mode) {
 		case "insert":
 			return { result: insert({ selector, table }) };
 		case "update":
 			return { result: update({ selector, table, attributes: attr.slice(1, -1) }) };
 		default:
-			const parsedattri = [...attr.matchAll(attrregex)];
-			attributes.push(...parsedattri.map(x => `${x[1]}='${x[2]}'`));
+			if (attr !== undefined) {
+				const selectAttribute = attr.matchAll(attrregex);
+				const parsedattri = [...selectAttribute];
+				attributes.push(...parsedattri.map(x => `${x[1]}='${x[2]}'`));
+			}
 			return { result: select({ selector, table, attributes }) };
 	}
 }
@@ -38,10 +43,18 @@ function select({ selector, table, attributes }: { selector: string, table: stri
 	} else {
 		newSelector = selector.split(";").map(x => x.trim()).filter(x => x).join(",");
 	}
-	return `select ${newSelector} from ${table} where ${attributes.join(" and ")};`;
+	if (attributes.length > 0) {
+		return `select ${newSelector} from ${table} where ${attributes.join(" and ")};`;
+	} else {
+		return `select ${newSelector} from ${table};`;
+	}
 }
 function insert({ selector: input, table }: { selector: string, table: string }) {
-	const i = input.split(";").filter((x: string) => x).map((x: string) => { const s = x.split("="); return [s[0], s[1].slice(1, -1)] });
+	// console.log({ input, table })
+	const i = input.split(";")?.filter((x: string) => x)?.map((x: string) => { const s = x?.split("="); return [s[0], s[1]?.slice(1, -1)] });
+	if (i == undefined) {
+		console.log("Empty selector")
+	}
 	const selector = i.map((x: Array<string>) => x[0]);
 	const values = i.map((x: Array<string>) => x[1]);
 	const retString = `insert into ${table} (${selector.join(",")}) values ('${values.join("','")}');`;
@@ -63,7 +76,21 @@ if (require.main === module) {
 		console.log("Something went Wrong");
 	} else {
 		// select selector1,selector2 from table where attribute_name='<value>';
-		console.log(result.result, `\nselect selector1,selector2 from table where attribute_name='<value>';`);
+		// console.log(result.result, `\nselect selector1,selector2 from table where attribute_name='<value>';`);
+
+		const res = [
+			//Select
+			".table{}",
+			".table{id;}",
+			".table[attr=\"hello\"]{ id; data;}",
+			// //Insert
+			".table{ id=\"Hello\"; data=\"User\";}",
+			// //Update
+			".table[attr=\"123\"]{id=\"Hello\";data=\"User\";}",
+		];
+
+		//@ts-ignore
+		res.forEach(x => console.log(x, parseInput(x)?.result))
 	}
 }
 

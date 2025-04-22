@@ -12,6 +12,9 @@ const Test = (msg: string, sqlString: string, id: number) => {
 	}
 }
 const testCases = [
+	[".table{}", "select * from table;"],
+	[".table{id;}", "select id from table;"],
+	[".table{id=\"123\";}", "insert into table (id) values ('123');"],
 	[`.table[attr1="testdata"]{}`, `select * from table where attr1='testdata';`],
 	[`.table[attr1="testdata"]{attr1;}`, `select attr1 from table where attr1='testdata';`],
 	[`.table[attr1="testdata"]{attr1;data;}`, `select attr1,data from table where attr1='testdata';`],
