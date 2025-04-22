@@ -1,0 +1,69 @@
+type success = { result: string; };
+type error = { error: string; };
+type returntype = success | error;
+type MODE = "select" | "insert" | "update";
+
+export function parseInput(msg: string): returntype {
+	let mode: MODE = "select";
+	const cssreg = /^\.(\w+)(\s*\[\w*="[^"].*"\]*)*\s*\{\s*((?:\w+[=".|/b*?"]*\s*;?\s*)*?)\s*\}/gm;
+	const attrregex = /\[(\w+)="([^"]*)"\]/g;
+	const parse = [...msg.matchAll(cssreg)];
+	if (parse.length === 0) {
+		return { error: "input is not accepted" };
+	}
+	let [_, table, attr, selector] = parse[0];
+	let attributes: Array<string> = [];
+	if (attr == undefined) {
+		mode = "insert";
+	} else if (selector.includes("=") && attr.includes("=")) {
+		mode = "update";
+	}
+
+	switch (mode) {
+		case "insert":
+			return { result: insert({ selector, table }) };
+		case "update":
+			return { result: update({ selector, table, attributes: attr.slice(1, -1) }) };
+		default:
+			const parsedattri = [...attr.matchAll(attrregex)];
+			attributes.push(...parsedattri.map(x => `${x[1]}='${x[2]}'`));
+			return { result: select({ selector, table, attributes }) };
+	}
+}
+
+function select({ selector, table, attributes }: { selector: string, table: string, attributes: Array<string> }) {
+	let newSelector = "";
+	if (selector === "") {
+		newSelector = "*";
+	} else {
+		newSelector = selector.split(";").map(x => x.trim()).filter(x => x).join(",");
+	}
+	return `select ${newSelector} from ${table} where ${attributes.join(" and ")};`;
+}
+function insert({ selector: input, table }: { selector: string, table: string }) {
+	const i = input.split(";").filter((x: string) => x).map((x: string) => { const s = x.split("="); return [s[0], s[1].slice(1, -1)] });
+	const selector = i.map((x: Array<string>) => x[0]);
+	const values = i.map((x: Array<string>) => x[1]);
+	const retString = `insert into ${table} (${selector.join(",")}) values ('${values.join("','")}');`;
+	return retString;
+}
+
+function update({ table, selector, attributes }: { selector: string, table: string, attributes: string }) {
+	const newSelector = selector
+		.trim()
+		.split(";")
+		.filter((x: string) => x)
+		.map((x: string) => x.replaceAll('"', "'")).join(",");
+	return `update ${table} set ${newSelector} where ${attributes.replaceAll("\"", "'")};`
+}
+
+if (require.main === module) {
+	const result = parseInput(`.table[attribute_name="<value>"]{selector1; selector2;}`);
+	if ("error" in result) {
+		console.log("Something went Wrong");
+	} else {
+		// select selector1,selector2 from table where attribute_name='<value>';
+		console.log(result.result, `\nselect selector1,selector2 from table where attribute_name='<value>';`);
+	}
+}
+
