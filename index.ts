@@ -79,7 +79,7 @@ function deletefn({ table, attributes, selector }: { table: string, attributes: 
 if (require.main === module) {
 	const result = parseInput(`.table[attribute_name="<value>"]{selector1; selector2;}`);
 	if ("error" in result) {
-		console.log(result.error);
+		console.error(result.error);
 	} else {
 		// select selector1,selector2 from table where attribute_name='<value>';
 		// console.log(result.result, `\nselect selector1,selector2 from table where attribute_name='<value>';`);
