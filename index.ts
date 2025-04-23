@@ -10,23 +10,25 @@ export function parseInput(msg: string): returntype {
 	if (parse.length === 0) {
 		return { error: "input is not accepted" };
 	}
-	let [_, table, attr, selector] = parse[0];
-	let attributes: Array<string> = [];
-	//check for setting Parameter
-	if (attr == undefined && selector.includes("=")) {
-		//insert
-		result.push(insert({ selector, table }));
-	} else if (selector.includes("=") && attr.includes("=")) {
-		// Update
-		result.push(update({ selector, table, attributes: attr.slice(1, -1) }));
-	} else {
-		// Selector
-		if (attr !== undefined) {
-			const selectAttribute = attr.matchAll(attrregex);
-			const parsedattri = [...selectAttribute];
-			attributes.push(...parsedattri.map(x => `${x[1]}='${x[2]}'`));
+	for (const match of parse) {
+		let [_, table, attr, selector] = match;
+		let attributes: Array<string> = [];
+		//check for setting Parameter
+		if (attr == undefined && selector.includes("=")) {
+			//insert
+			result.push(insert({ selector, table }));
+		} else if (selector.includes("=") && attr.includes("=")) {
+			// Update
+			result.push(update({ selector, table, attributes: attr.slice(1, -1) }));
+		} else {
+			// Selector
+			if (attr !== undefined) {
+				const selectAttribute = attr.matchAll(attrregex);
+				const parsedattri = [...selectAttribute];
+				attributes.push(...parsedattri.map(x => `${x[1]}='${x[2]}'`));
+			}
+			result.push(select({ selector, table, attributes }));
 		}
-		result.push(select({ selector, table, attributes }));
 	}
 	return { result: result.join("\n") };
 }

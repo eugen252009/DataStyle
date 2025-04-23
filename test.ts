@@ -22,6 +22,9 @@ const testCases = [
 	[`.table{attr1="testdata";useragent="Test";path="/test.txt";}`, `insert into table (attr1,useragent,path) values ('testdata','Test','/test.txt');`],
 	['.table[attr1="testdata"]{ path="321"; }', "update table set path='321' where attr1='testdata';"],
 	['.table[attr1="testdata"]{ path="321";useragent="hallo"; }', `update table set path='321',useragent='hallo' where attr1='testdata';`],
+	['.table{}\n.table[attr1="testdata"]{ path="321";useragent="hallo"; }', "select * from table;\nupdate table set path='321',useragent='hallo' where attr1='testdata';"],
+	['.table{}\n.table[attr1="testdata"]{ path="321";useragent="hallo"; }', "select * from table;\nupdate table set path='321',useragent='hallo' where attr1='testdata';"],
+	['.table[attr1="testdata"]{}\n.table[attr1="testdata"]{attr1;}', `select * from table where attr1='testdata';\nselect attr1 from table where attr1='testdata';`],
 ];
 
 for (let index = 0; index < testCases.length; index++) {
