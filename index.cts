@@ -1,6 +1,10 @@
+import { argv } from "node:process";
+import repl from "node:repl";
 type success = { result: string; };
 type error = { error: string; };
 type returntype = success | error;
+
+
 
 export function parseInput(msg: string): returntype {
 	const result: Array<string> = [];
@@ -77,26 +81,20 @@ function deletefn({ table, attributes, selector }: { table: string, attributes: 
 }
 
 if (require.main === module) {
-	const result = parseInput(`.table[attribute_name="<value>"]{selector1; selector2;}`);
-	if ("error" in result) {
-		console.error(result.error);
+	console.log("Welcome to the DataStyle repl!")
+	console.log("Please add an _ to your Input, if it starts with [.]!")
+	repl.start({ prompt: "->", eval: Eval });
+}
+function Eval(uInput: string, _context: any, _filename: string, callback: Function) {
+	callback(null, helper(uInput[0] === "_" ? uInput.slice(1) : uInput))
+}
+
+function helper(uInput: string) {
+	const res = parseInput(uInput);
+	if ("error" in res) {
+		console.error(res.error);
 	} else {
-		// select selector1,selector2 from table where attribute_name='<value>';
-		// console.log(result.result, `\nselect selector1,selector2 from table where attribute_name='<value>';`);
-
-		const res = [
-			// Select
-			".table{}",
-			".table{id;}",
-			".table[attr=\"hello\"]{ id; data;}",
-			// //Insert
-			".table{ id=\"Hello\"; data=\"User\";}",
-			// //Update
-			".table[attr=\"123\"]{id=\"Hello\";data=\"User\";}",
-		];
-
-		//@ts-ignore
-		res.forEach(x => console.log(x, parseInput(x)?.result))
+		return res.result;
 	}
 }
 

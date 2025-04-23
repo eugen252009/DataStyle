@@ -1,4 +1,4 @@
-import { parseInput } from "./index";
+import { parseInput } from "./index.cjs";
 const Test = (msg: string, sqlString: string, id: number): boolean => {
 	const testresult = parseInput(msg);
 	if ("error" in testresult) {
