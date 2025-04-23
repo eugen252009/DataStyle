@@ -4,7 +4,7 @@ type returntype = success | error;
 
 export function parseInput(msg: string): returntype {
 	const result: Array<string> = [];
-	const cssreg = /^\.(\w+)(\s*\[\w*="[^"].*"\]*)*\s*\{\s*((?:\w+[=".|/b*?"]*\s*;?\s*)*?)\s*\}/gm;
+	const cssreg = /^(?:\:delete\s*)?\.(\w+)(\s*\[\w*="[^"].*"\]*)*\s*\{\s*((?:\w+[=\".\";]*\s*)*?)\s*\}/gm;
 	const attrregex = /\[(\w+)="([^"]*)"\]/g;
 	const parse = [...msg.matchAll(cssreg)];
 	if (parse.length === 0) {
@@ -12,21 +12,24 @@ export function parseInput(msg: string): returntype {
 	}
 	for (const match of parse) {
 		let [_, table, attr, selector] = match;
-		let attributes: Array<string> = [];
+		const attributes: Array<string> = [];
+		if (attr !== undefined) {
+			const selectAttribute = attr.matchAll(attrregex);
+			const parsedattri = [...selectAttribute];
+			attributes.push(...parsedattri.map(x => `${x[1]}='${x[2]}'`));
+		}
 		//check for setting Parameter
 		if (attr == undefined && selector.includes("=")) {
 			//insert
 			result.push(insert({ selector, table }));
 		} else if (selector.includes("=") && attr.includes("=")) {
 			// Update
-			result.push(update({ selector, table, attributes: attr.slice(1, -1) }));
+			result.push(update({ selector, table, attributes }));
+		} else if (match.input.slice(0, 7) === ":delete") {
+			//delete
+			result.push(deletefn({ table, attributes, selector }));
 		} else {
 			// Selector
-			if (attr !== undefined) {
-				const selectAttribute = attr.matchAll(attrregex);
-				const parsedattri = [...selectAttribute];
-				attributes.push(...parsedattri.map(x => `${x[1]}='${x[2]}'`));
-			}
 			result.push(select({ selector, table, attributes }));
 		}
 	}
@@ -47,7 +50,6 @@ function select({ selector, table, attributes }: { selector: string, table: stri
 	}
 }
 function insert({ selector: input, table }: { selector: string, table: string }) {
-	// console.log({ input, table })
 	const i = input.split(";")?.filter((x: string) => x)?.map((x: string) => { const s = x?.split("="); return [s[0], s[1]?.slice(1, -1)] });
 	if (i == undefined) {
 		console.log("Empty selector")
@@ -58,19 +60,26 @@ function insert({ selector: input, table }: { selector: string, table: string })
 	return retString;
 }
 
-function update({ table, selector, attributes }: { selector: string, table: string, attributes: string }) {
+function update({ table, selector, attributes }: { selector: string, table: string, attributes: Array<string> }) {
 	const newSelector = selector
 		.trim()
 		.split(";")
 		.filter((x: string) => x)
 		.map((x: string) => x.replaceAll('"', "'")).join(",");
-	return `update ${table} set ${newSelector} where ${attributes.replaceAll("\"", "'")};`
+	return `update ${table} set ${newSelector} where ${attributes.join(",")};`
+}
+function deletefn({ table, attributes, selector }: { table: string, attributes: Array<string>, selector: string }, ...r: any) {
+	if (attributes.length === 0) {
+		return `delete from ${table};`
+	}
+	return `delete from ${table} where ${attributes.join(" and ")};`
+
 }
 
 if (require.main === module) {
 	const result = parseInput(`.table[attribute_name="<value>"]{selector1; selector2;}`);
 	if ("error" in result) {
-		console.log("Something went Wrong");
+		console.log(result.error);
 	} else {
 		// select selector1,selector2 from table where attribute_name='<value>';
 		// console.log(result.result, `\nselect selector1,selector2 from table where attribute_name='<value>';`);
