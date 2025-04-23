@@ -1,10 +1,9 @@
 type success = { result: string; };
 type error = { error: string; };
 type returntype = success | error;
-type MODE = "select" | "insert" | "update";
 
 export function parseInput(msg: string): returntype {
-	let mode: MODE = "select";
+	const result: Array<string> = [];
 	const cssreg = /^\.(\w+)(\s*\[\w*="[^"].*"\]*)*\s*\{\s*((?:\w+[=".|/b*?"]*\s*;?\s*)*?)\s*\}/gm;
 	const attrregex = /\[(\w+)="([^"]*)"\]/g;
 	const parse = [...msg.matchAll(cssreg)];
@@ -15,25 +14,21 @@ export function parseInput(msg: string): returntype {
 	let attributes: Array<string> = [];
 	//check for setting Parameter
 	if (attr == undefined && selector.includes("=")) {
-		mode = "insert";
+		//insert
+		result.push(insert({ selector, table }));
 	} else if (selector.includes("=") && attr.includes("=")) {
-		mode = "update";
+		// Update
+		result.push(update({ selector, table, attributes: attr.slice(1, -1) }));
 	} else {
-		mode = "select"
+		// Selector
+		if (attr !== undefined) {
+			const selectAttribute = attr.matchAll(attrregex);
+			const parsedattri = [...selectAttribute];
+			attributes.push(...parsedattri.map(x => `${x[1]}='${x[2]}'`));
+		}
+		result.push(select({ selector, table, attributes }));
 	}
-	switch (mode) {
-		case "insert":
-			return { result: insert({ selector, table }) };
-		case "update":
-			return { result: update({ selector, table, attributes: attr.slice(1, -1) }) };
-		default:
-			if (attr !== undefined) {
-				const selectAttribute = attr.matchAll(attrregex);
-				const parsedattri = [...selectAttribute];
-				attributes.push(...parsedattri.map(x => `${x[1]}='${x[2]}'`));
-			}
-			return { result: select({ selector, table, attributes }) };
-	}
+	return { result: result.join("\n") };
 }
 
 function select({ selector, table, attributes }: { selector: string, table: string, attributes: Array<string> }) {
@@ -79,7 +74,7 @@ if (require.main === module) {
 		// console.log(result.result, `\nselect selector1,selector2 from table where attribute_name='<value>';`);
 
 		const res = [
-			//Select
+			// Select
 			".table{}",
 			".table{id;}",
 			".table[attr=\"hello\"]{ id; data;}",
