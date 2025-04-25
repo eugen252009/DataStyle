@@ -105,7 +105,8 @@ function parser(tokens: Array<Array<Token>>) {
 			//Delete);
 			case mutators.length > 0 &&
 				classes.length === 1:
-				result.push(`Something else from ${classes}`);
+				//TODO: ADD SOME OTHER FUNCTIONS
+				result.push(`TODO:Something else from ${classes}`);
 				break;
 			//Update);
 			case selectors.length >= 1 && selectors[0]?.at(1) !== undefined && attributes.length > 0 && classes.length === 1:

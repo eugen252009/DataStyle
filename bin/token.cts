@@ -26,8 +26,8 @@ export const TokenType = {
 
 export class Token {
 	token: string;
-	value: string | undefined;
-	constructor(token: string, value?: string) {
+	value: string;
+	constructor(token: string, value: string) {
 		this.token = token;
 		this.value = value;
 	}
