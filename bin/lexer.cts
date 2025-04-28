@@ -8,6 +8,9 @@ export class Lexer {
 		this.input = input;
 		this.index = 0;
 	}
+	hasNext() {
+		return this.index < this.input.length;
+	}
 	_char() {
 		return this.input[this.index];
 	}
@@ -17,81 +20,110 @@ export class Lexer {
 	_peekChar() {
 		return this.input[this.index + 1];
 	}
-	next() {
-		if (this.index >= this.input.length) return undefined;
-		this.skipWhitespace();
-		switch (this._char()) {
-			case "=":
-				return new Token(TokenType.EQALS, this._nextChar());
-			case "!":
-				return new Token(TokenType.BANG, this._nextChar());
-			case "(":
-				return new Token(TokenType.L_BRACE, this._nextChar());
-			case ")":
-				return new Token(TokenType.R_BRACE, this._nextChar());
-			case "{":
-				return new Token(TokenType.L_CURL_BRACE, this._nextChar());
-			case "}":
-				return new Token(TokenType.R_CURL_BRACE, this._nextChar());
-			case "/":
-				return new Token(TokenType.SLASH, this._nextChar());
-			case "\\":
-				return new Token(TokenType.BACK_SLASH, this._nextChar());
-			case "[":
-				return new Token(TokenType.L_BRACKET, this._nextChar());
-			case "]":
-				return new Token(TokenType.R_BRACKET, this._nextChar());
-			case ";":
-				return new Token(TokenType.SEMICOLON, this._nextChar());
-			case ",":
-				return new Token(TokenType.COLON, this._nextChar());
-			case ":":
-				{
-					const firstchar = this.index;
-					this._nextChar()
-					if (this.isLetter()) {
-						while (this.isLetter() || this.isNumerical()) { this._nextChar(); }
-						return new Token(TokenType.DOUBLE_COLON, this.input.slice(firstchar + 1, this.index));
-					}
-					return new Token(TokenType.DOUBLE_COLON, this.input[firstchar]);
-				}
-			case "\"":
-			case "'":
-				return new Token(TokenType.QUOTATION, this._nextChar());
 
-			case "#":
-				{
-					const firstchar = this.index;
-					this._nextChar()
-					if (this.isLetter()) {
-						while (this.isLetter() || this.isNumerical()) {
-							this._nextChar()
-						}
-						return new Token(TokenType.ID, this.input.slice(firstchar + 1, this.index));
-					}
-				}
-				return new Token(TokenType.HASH, this._nextChar());
-			case ".":
-				{
+	[Symbol.iterator] = this.nextToken;
+	*nextToken() {
+		while (true) {
+			if (this.index >= this.input.length) return;
+			this.skipWhitespace();
+			switch (this._char()) {
+				case "=":
+					yield new Token(TokenType.EQALS, this._nextChar());
+					break
+				case "!":
+					yield new Token(TokenType.BANG, this._nextChar());
+					break
+				case "(":
+					yield new Token(TokenType.L_BRACE, this._nextChar());
+					break
+				case ")":
+					yield new Token(TokenType.R_BRACE, this._nextChar());
+					break
+				case "{":
+					yield new Token(TokenType.L_CURL_BRACE, this._nextChar());
+					break
+				case "}":
+					yield new Token(TokenType.R_CURL_BRACE, this._nextChar());
+					break
+				case "/":
+					yield new Token(TokenType.SLASH, this._nextChar());
+					break
+				case "\\":
+					yield new Token(TokenType.BACK_SLASH, this._nextChar());
+					break
+				case "[":
+					yield new Token(TokenType.L_BRACKET, this._nextChar());
+					break
+				case "]":
+					yield new Token(TokenType.R_BRACKET, this._nextChar());
+					break
+				case ";":
+					yield new Token(TokenType.SEMICOLON, this._nextChar());
+					break
+				case ",":
+					yield new Token(TokenType.COLON, this._nextChar());
+					break
+				case ":": {
 					const firstchar = this.index;
 					this._nextChar()
 					if (this.isLetter()) {
 						while (this.isLetter() || this.isNumerical()) { this._nextChar(); }
-						return new Token(TokenType.CLASS, this.input.slice(firstchar + 1, this.index));
+						yield new Token(TokenType.STRING, this.input.slice(firstchar + 1, this.index));
+						break
 					}
-					return new Token(TokenType.DOT, this.input[firstchar]);
+					yield new Token(TokenType.DOUBLE_COLON, this.input[firstchar]);
+					break
 				}
-			default:
-				if (this.isLetter()) {
-					const firstchar = this.index;
-					while (this.isLetter() || this.isNumerical()) { this._nextChar() }
-					return new Token(TokenType.LITERAL, this.input.slice(firstchar, this.index));
-				} else if (this.isNumerical()) {
-					const firstchar = this.index;
-					while (this.isNumerical()) { this._nextChar() }
-					return new Token(TokenType.INT, this.input.slice(firstchar, this.index));
-				}
-				return new Token(TokenType.UNDEFINED, this._nextChar());
+				case '"':
+				case "'":
+					{
+						const firstcharindex = this.index;
+						const firstchar = this._nextChar();
+						while (this.hasNext() && this._char() !== firstchar) { this._nextChar(); }
+						this._nextChar()
+						yield new Token(TokenType.STRING, this.input.slice(firstcharindex + 1, this.index - 1))
+						break
+					}
+				case "#":
+					{
+						const firstchar = this.index;
+						this._nextChar()
+						if (this.isLetter()) {
+							while (this.isLetter() || this.isNumerical()) {
+								this._nextChar()
+							}
+							yield new Token(TokenType.ID, this.input.slice(firstchar + 1, this.index));
+							break
+						}
+					}
+					yield new Token(TokenType.HASH, this._nextChar());
+					break
+				case ".":
+					{
+						const firstchar = this.index;
+						this._nextChar()
+						if (this.isLetter()) {
+							while (this.isLetter() || this.isNumerical()) { this._nextChar(); }
+							yield new Token(TokenType.CLASS, this.input.slice(firstchar + 1, this.index));
+							break
+						}
+						yield new Token(TokenType.DOT, this.input[firstchar]);
+						break
+					}
+				default:
+					if (this.isLetter()) {
+						const firstchar = this.index;
+						while (this.isLetter() || this.isNumerical()) { this._nextChar() }
+						yield new Token(TokenType.LITERAL, this.input.slice(firstchar, this.index));
+						break
+					} else if (this.isNumerical()) {
+						const firstchar = this.index;
+						while (this.isNumerical()) { this._nextChar() }
+						yield new Token(TokenType.INT, this.input.slice(firstchar, this.index));
+						break
+					}
+					yield new Token(TokenType.INVALID, this._nextChar());
+			}
 		}
 	}
 	skipWhitespace() {
@@ -109,7 +141,3 @@ export class Lexer {
 		return false
 	}
 }
-
-
-
-

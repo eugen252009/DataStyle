@@ -13,7 +13,7 @@ export const TokenType = {
 	L_BRACKET: "L_BRACKET",
 	R_BRACKET: "R_BRACKET",
 	HASH: "HASH",
-	UNDEFINED: "UNDEFINED",
+	INVALID: "INVALID",
 	DOT: "DOT",
 	CLASS: "CLASS",
 	QUOTATION: "QUOTATION",
@@ -21,8 +21,13 @@ export const TokenType = {
 	COLON: "COLON",
 	DOUBLE_COLON: "DOUBLE_COLON",
 	ID: "ID",
+	STRING: "STRING",
+	ATTRIBUTE: "ATTRIBUTE",
+	SELECTOR: "SELECTOR",
+	ILLEGAL: "ILLEGAL",
 } as const;
 
+export type TOKEN = Token;
 
 export class Token {
 	token: string;
@@ -30,5 +35,18 @@ export class Token {
 	constructor(token: string, value: string) {
 		this.token = token;
 		this.value = value;
+	}
+}
+
+export class Statement {
+	readonly type: "Statement";
+	token: string;
+	name: Token;
+	value: TOKEN;
+	constructor(token: string, name: TOKEN, value: TOKEN) {
+		this.token = token;
+		this.name = name;
+		this.value = value;
+		this.type = "Statement"
 	}
 }
