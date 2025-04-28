@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { argv } from "node:process";
 import repl from "node:repl";
 type success = { result: string; };
@@ -79,22 +80,34 @@ function deletefn({ table, attributes, selector }: { table: string, attributes: 
 	return `delete from ${table} where ${attributes.join(" and ")};`
 
 }
+(() => {
+	if (require.main === module) {
+		if (process.argv[2] !== undefined) {
+			const data = readFileSync(process.argv[2], "utf8")
+			const res = parseInput(data)
+			if ("error" in res) {
+				console.error(res.error)
+			} else {
+				console.log(res.result)
+			}
+			return
+		}
 
-if (require.main === module) {
-	console.log("Welcome to the DataStyle repl!")
-	console.log("Please add an _ to your Input, if it starts with [.]!")
-	repl.start({ prompt: "->", eval: Eval });
-}
-function Eval(uInput: string, _context: any, _filename: string, callback: Function) {
-	callback(null, helper(uInput[0] === "_" ? uInput.slice(1) : uInput))
-}
-
-function helper(uInput: string) {
-	const res = parseInput(uInput);
-	if ("error" in res) {
-		console.error(res.error);
-	} else {
-		return res.result;
+		console.log("Welcome to the DataStyle repl!")
+		console.log("Please add an _ to your Input, if it starts with [.]!")
+		repl.start({ prompt: "->", eval: Eval });
 	}
-}
+	function Eval(uInput: string, _context: any, _filename: string, callback: Function) {
+		callback(null, helper(uInput[0] === "_" ? uInput.slice(1) : uInput))
+	}
 
+	function helper(uInput: string) {
+		const res = parseInput(uInput);
+		if ("error" in res) {
+			console.error(res.error);
+		} else {
+			return res.result;
+		}
+	}
+
+})()
