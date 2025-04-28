@@ -28,7 +28,7 @@ export class Lexer {
 			this.skipWhitespace();
 			switch (this._char()) {
 				case "=":
-					yield new Token(TokenType.EQALS, this._nextChar());
+					yield new Token(TokenType.EQUALS, this._nextChar());
 					break
 				case "!":
 					yield new Token(TokenType.BANG, this._nextChar());
@@ -68,7 +68,7 @@ export class Lexer {
 					this._nextChar()
 					if (this.isLetter()) {
 						while (this.isLetter() || this.isNumerical()) { this._nextChar(); }
-						yield new Token(TokenType.STRING, this.input.slice(firstchar + 1, this.index));
+						yield new Token(TokenType.STRING, this.input.slice(firstchar, this.index + 1));
 						break
 					}
 					yield new Token(TokenType.DOUBLE_COLON, this.input[firstchar]);
@@ -81,7 +81,7 @@ export class Lexer {
 						const firstchar = this._nextChar();
 						while (this.hasNext() && this._char() !== firstchar) { this._nextChar(); }
 						this._nextChar()
-						yield new Token(TokenType.STRING, this.input.slice(firstcharindex + 1, this.index - 1))
+						yield new Token(TokenType.STRING, this.input.slice(firstcharindex, this.index))
 						break
 					}
 				case "#":

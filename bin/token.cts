@@ -1,6 +1,6 @@
 export const TokenType = {
-	EQALS: "EQALS",
-	NOT_EQALS: "NOT_EQALS",
+	EQUALS: "EQALS",
+	NOT_EQUALS: "NOT_EQALS",
 	LITERAL: "LITERAL",
 	BANG: "BANG",
 	INT: "INT",

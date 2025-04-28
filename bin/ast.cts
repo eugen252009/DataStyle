@@ -5,38 +5,12 @@ import { Lexer } from "./lexer.cts"
 import { TokenType, Statement, Token } from "./token.cts";
 //@ts-ignore
 import { logError, ERRORMSG, err, ok } from "./error.cts";
-
+//@ts-ignore
+import { AttributeStatement, Class, makeStmt, SelectorStatement } from "./sql.cts";
 function log(...any: any) { const linenr = new Error().stack?.split("\n").at(2)?.split(":").at(1); console.log(linenr + ":", ...any) };
 
-class Class {
-	attributes: AttributeStatement[] = [];
-	selectors: SelectorStatement[] = []
-	name: string;
-	constructor(name: string, attributes: AttributeStatement[], selectors: SelectorStatement[]) {
-		this.name = name;
-		this.attributes = attributes;
-		this.selectors = selectors;
-	}
-}
 
-class AttributeStatement {
-	name: string;
-	value: string;
-	constructor(name: string, value: string) {
-		this.name = name;
-		this.value = value;
-	}
-}
-class SelectorStatement {
-	attr: string | undefined;
-	name: string;
-	constructor(name: string, attr?: string) {
-		this.name = name;
-		this.attr = attr;
-	}
-}
-
-class ASTMAKER {
+export class ASTMAKER {
 	tokens: Array<Token>;
 	Ast: Class[] = [];
 	constructor(tokens: Array<Token>) {
@@ -53,51 +27,6 @@ class ASTMAKER {
 	}
 	getTokens() { return this.tokens; }
 	getAst() { return this.Ast; }
-	makeStmt() {
-		const res = [];
-		if (this.Ast == undefined) {
-			err("this.Ast is undefined")
-			return
-		}
-		for (const iter of this.Ast) {
-			switch (true) {
-				//update
-				case iter.selectors.at(0)?.attr !== undefined && iter.attributes.length > 0: {
-					log("update", iter)
-					res.push(this.update(iter))
-					break
-				}
-				// insert
-				case iter.selectors.at(0)?.attr !== undefined: {
-					log("insert", iter, iter.attributes.length)
-					res.push(this.insert(iter));
-					break
-				}
-				default: {
-					res.push(this.select(iter))
-					iter.attributes
-				}
-			}
-		}
-		return res.join("\n")
-	}
-	update(ast: Class) {
-		return `update ${ast.name} set ${ast.selectors.map(x => `${x.attr}=${x.name} where ${ast.attributes.map(x => `${x.name}=${x.value}`)};`)}`
-	}
-	insert(ast: Class) {
-		if (ast.attributes.length === 0) {
-			return `insert into ${ast.name} (${ast.selectors.map(x => x.attr)}) values (${ast.selectors.map(x => x.name)});`
-		} else {
-			return `insert into ${ast.name} (${ast.selectors.map(x => x.attr)}) values (${ast.selectors.map(x => x.name)}) where ${ast.attributes.map(x => `${x.name}=${x.value}`).join(" and ")};`
-		}
-	}
-	select(ast: Class): string {
-		if (ast.attributes.length > 0) {
-			return `select ${ast.selectors.map(x => x.name).join(",")} from ${ast.name} where ${ast.attributes.map(x => `${x.name}=${x.value}`).join(" and ")};`
-		} else {
-			return `select ${ast.selectors.map(x => x.name).join(",")} from ${ast.name};`
-		}
-	}
 
 	splitTokens(tokens: Token[]) {
 		const ast = [];
@@ -133,7 +62,7 @@ class ASTMAKER {
 					}
 					const literals = tokens.slice(start, index).filter(x =>
 						x.token === TokenType.LITERAL ||
-						x.token === TokenType.EQALS ||
+						x.token === TokenType.EQUALS ||
 						x.token === TokenType.STRING ||
 						x.token === TokenType.INT ||
 						x.token === TokenType.SEMICOLON
@@ -141,7 +70,7 @@ class ASTMAKER {
 					literals.map((_, id, arr) => {
 						if (
 							arr[id + 0].token === TokenType.LITERAL &&
-							arr[id + 1]?.token === TokenType.EQALS &&
+							arr[id + 1]?.token === TokenType.EQUALS &&
 							(arr[id + 2]?.token === TokenType.STRING || arr[id + 2]?.token === TokenType.INT) &&
 							arr[id + 3]?.token === TokenType.SEMICOLON
 						) {
@@ -175,11 +104,7 @@ class ASTMAKER {
 				}
 				case TokenType.ATTRIBUTE: {
 					if (element instanceof Statement) {
-						if (element.value.token === TokenType.STRING) {
-							AST.attributes.push(new AttributeStatement(element.name.value, "\"" + element.value.value + "\""))
-						} else if (element.value.token === TokenType.INT) {
-							AST.attributes.push(new AttributeStatement(element.name.value, element.value.value))
-						}
+						AST.attributes.push(new AttributeStatement(element.name.value, element.value.value))
 					}
 					break
 				}
@@ -213,24 +138,24 @@ class ASTMAKER {
 		// [new ASTMAKER([...new Lexer('.table[{}')]), undefined],
 		//
 		// SELECT
-		// [new ASTMAKER([...new Lexer('.table2{}')]), "select * from table2;"],
-		// [new ASTMAKER([...new Lexer('.table2{id;data;}')]), "select id,data from table2;"],
-		// [new ASTMAKER([...new Lexer('.table2[attr2=332]{id;data;}')]), "select id,data from table2 where attr2=332;"],
-		// [new ASTMAKER([...new Lexer('.table2[attr2=332][attr="hallo"]{id;data;}')]), "select id,data from table2 where attr2=332 and attr=\"hallo\";"],
+		[new ASTMAKER([...new Lexer('.table2{}')]), "select * from table2;"],
+		[new ASTMAKER([...new Lexer('.table2{id;data;}')]), "select id,data from table2;"],
+		[new ASTMAKER([...new Lexer('.table2[attr2=332]{id;data;}')]), "select id,data from table2 where attr2=332;"],
+		[new ASTMAKER([...new Lexer('.table2[attr2=332][attr="hallo"]{id;data;}')]), "select id,data from table2 where attr2=332 and attr=\"hallo\";"],
 
 		//MultiSelect
 		// [new ASTMAKER([...new Lexer('.table2[attr2=332][attr="hallo"]{id;}\n .table{}')]), "select id from table2 where attr2=332 and attr=\"hallo\";\nselect * from table;"],
 
 		//Insert
-		// [new ASTMAKER([...new Lexer('.table2{id=10;}')]), "insert into table2 (id) values (10);"],
-		// [new ASTMAKER([...new Lexer('.table2{id="10";}')]), 'insert into table2 (id) values (10);'],
+		[new ASTMAKER([...new Lexer('.table2{id=10;}')]), "insert into table2 (id) values (10);"],
+		[new ASTMAKER([...new Lexer('.table2{id="10";}')]), 'insert into table2 (id) values (10);'],
 
 		//update
 		[new ASTMAKER([...new Lexer('.table2[attr2="hello"]{id="id1";}')]), 'update table2 set id="id1" where attr="hello";'],
 		[new ASTMAKER([...new Lexer('.table2[attr2=332]{id=123;}')]), 'update table2 set id=123 where attr2=332;'],
 
 		// delete
-		// [new ASTMAKER([...new Lexer(':delete.table2[attr2=332][attr="hallo"]{id;}\n .table{}')]), "not Implemented yet"],
+		[new ASTMAKER([...new Lexer(':delete.table2[attr2=332][attr="hallo"]{id;}\n .table{}')]), "not Implemented yet"],
 
 		// join
 		// [new ASTMAKER([...new Lexer('#id.table1.table2[attr2=332][attr="hallo"]{id;}\n .table{}')]), "select id from table2 where attr2=332 and attr=\"hallo\";\nselect * from table;"],
@@ -241,9 +166,10 @@ class ASTMAKER {
 
 
 	for (let i = 0; i < testData.length; i++) {
-		const res = testData[i][0].makeStmt();
-		const testres = testData[i][1] === res;
-		if (!testres) { log(i, "\n" + testData[i][1], "\n" + res) }
+		const res = testData[i][0];
+		const testres = makeStmt(res.getAst());
+		log(testres)
+		// if (!testres) { log(i, "\n" + testData[i][1], "\n" + res) }
 	}
 })()
 
