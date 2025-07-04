@@ -1,4 +1,3 @@
-import { exit } from "process"
 export const ERRORMSG = {
 	TODO: "TODO",
 	WRONG_STRUCTURE: "Your Structure is Wrong",
@@ -7,7 +6,7 @@ export const ERRORMSG = {
 	TOO_MUCH_ARGUMENTS: "Too Much Arguments",
 	INFINITE_LOOP: "THERE IS AN INFINITE LOOP GOING ON!",
 } as const;
-export const logError = (...msg: string[] | any[]) => { console.error(...msg); exit(1) }
+export const logError = (...msg: string[] | any[]) => { console.error(...msg); }
 type ResultType<T, E> = Ok<T> | Err<E>;
 class Ok<T> {
 	readonly ok = true;

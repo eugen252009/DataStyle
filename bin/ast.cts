@@ -1,4 +1,3 @@
-import { error } from "console"
 //@ts-ignore
 import { Lexer } from "./lexer.cts"
 //@ts-ignore
@@ -19,7 +18,7 @@ export class ASTMAKER {
 		for (const stmt of Stmt) {
 			const res = this.makeAST(this.parseTokens(stmt))
 			if (res.isErr()) {
-				error(res.get())
+				console.error(res.get())
 				return
 			}
 			this.Ast.push(res.get());
@@ -50,7 +49,7 @@ export class ASTMAKER {
 					while (tokens[index].token !== TokenType.R_BRACKET) { index++ };
 					if (tokens.slice(start + 1, index).length < 3) { logError(ERRORMSG.NOT_ENOUGH_ARGUMENTS, this.tokens.slice(start, index + 1).map(x => x.value).join("")) }
 					if (tokens.slice(start + 1, index).length > 3) { logError(ERRORMSG.TOO_MUCH_ARGUMENTS, this.tokens.slice(start, index + 1).map(x => x.value).join("")) }
-					statements.push(new Statement(TokenType.ATTRIBUTE, tokens[start + 1], this.tokens[start + 3]))
+					statements.push(new Statement(TokenType.ATTRIBUTE, tokens[start + 1], tokens[start + 3]))
 					break;
 				}
 				case TokenType.L_CURL_BRACE: {

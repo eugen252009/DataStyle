@@ -1,6 +1,4 @@
 //@ts-ignore
-import { log } from "console";
-//@ts-ignore
 import { err } from "./error.cts";
 
 export class Class {
